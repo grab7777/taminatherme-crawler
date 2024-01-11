@@ -1,0 +1,18 @@
+version: "3"
+services:
+  database:
+    image: "postgres"
+    deploy:
+      mode: global
+    environment:
+      - POSTGRES_PASSWORD=/run/secrets/db_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - "C:/docker-db-volume:/var/lib/postgresql/data"
+    secrets:
+      - db_password
+
+secrets:
+  db_password:
+    file: db_password.txt
