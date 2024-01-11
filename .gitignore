@@ -8,6 +8,8 @@ __pycache__/
 # VSCode
 tempCodeRunnerFile.python
 
+# secrets
+
 # Distribution / packaging
 .Python
 build/
@@ -129,6 +131,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+*password*
 
 # Spyder project settings
 .spyderproject
