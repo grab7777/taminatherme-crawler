@@ -1,31 +1,45 @@
 import re
 import os
 import psycopg2
+
+# from requests_html import HTMLSession
+# import urllib.request
+# import mechanize
 from dotenv import load_dotenv
 from datetime import datetime
-from selenium import webdriver
+from pyppeteer import launch
+import asyncio
+# from selenium import webdriver
 
 load_dotenv()
 # TODO: installation of python-dotenv, psycopg2, selenium
 
-def loadSource():
-    chrome = webdriver.Chrome()
-    chrome.get("https://www.taminatherme.ch")
-    return chrome.page_source 
+async def loadSource():
+    browser = await launch(headless=True,args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-setuid-sandbox'])
+    page = await browser.newPage()
+    await page.goto("https://www.taminatherme.ch")
+    html_content = await page.content()
+    
+    # session = HTMLSession()
+    # response = session.get('https://www.taminatherme.ch')
+    # response.html.render()
+    print(html_content)
+    await page.close()
+    await browser.close()
+    # page = urllib.request.urlopen('https://www.taminatherme.ch')
+    return html_content
+    # chrome = webdriver.Chrome()
+    # chrome.get("https://www.taminatherme.ch")
 
-source = loadSource()
-
+source = asyncio.run(loadSource())
 def getOccupancy(sourceString):
     result = re.search(r"<span class=\"block font-bold\">([0-9]+)%</span>", sourceString)
-    if result.group(1):
+    if result.group(1) and int(result.group(1)) >= 0 and int(result.group(1)) <= 100:
+        print("Occupancy: " + result.group(1))
         return int(result.group(1))
     else:
-        return -1
-
-occupancy = getOccupancy(source)
-if (occupancy < 0):
-    print("Could not find occupancy on Website")
-    exit(0)
+        print("Could not find occupancy on Website")
+        exit(0)
 
 def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_USER = os.getenv("DB_USER")
@@ -48,5 +62,5 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
     connection.commit()
     # TODO: Error handling
 
-
+occupancy = getOccupancy(source)
 writeNewValueIntoDataBase(f"'{datetime.now()}'", occupancy)
