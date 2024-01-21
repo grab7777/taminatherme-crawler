@@ -23,7 +23,7 @@ async def loadSource():
     # session = HTMLSession()
     # response = session.get('https://www.taminatherme.ch')
     # response.html.render()
-    print(html_content)
+    # print(html_content)
     await page.close()
     await browser.close()
     # page = urllib.request.urlopen('https://www.taminatherme.ch')
@@ -63,4 +63,8 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
     # TODO: Error handling
 
 occupancy = getOccupancy(source)
+logFile = open("./cron_task.log", "a")
+# move this to the function, where we wrote the value into the database
+logFile.write(f"Date: {datetime.now()}\t Occupancy: {occupancy}\n")
+logFile.close()
 writeNewValueIntoDataBase(f"'{datetime.now()}'", occupancy)
