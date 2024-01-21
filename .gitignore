@@ -10,6 +10,10 @@ tempCodeRunnerFile.python
 
 # secrets
 
+/.next/
+/.yarn/
+node_modules/
+
 # Distribution / packaging
 .Python
 build/
