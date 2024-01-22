@@ -3,6 +3,8 @@ WORKDIR /
 COPY ./fetcher.py .
 COPY ./requirements.txt .
 
+
+
 RUN apt update
 RUN apt install -y python3-pip python3-requests cron 
 
@@ -46,7 +48,12 @@ RUN apt install -y xdg-utils
 RUN pip3 install -r ./requirements.txt
 
 # add cronjob
-RUN echo '*  *  *  *  *    python3 /fetcher.py' > /etc/crontab
-RUN chmod +x ./fetcher.py
-RUN touch ./cron_task.log
-CMD cron && tail -f ./cron_task.log
+COPY ./cron /etc/cron.d/cron
+RUN chmod 0644 /etc/cron.d/cron
+RUN crontab /etc/cron.d/cron
+
+# RUN echo '*  *  *  *  *    /usr/bin/python3 /fetcher.py\n' >> /etc/crontab
+# RUN echo '*  *  *  *  *    touch /hello.txt\n' >> /etc/crontab
+RUN chmod +x /fetcher.py
+RUN touch /cron_task.log
+CMD ["cron" , "-f"]

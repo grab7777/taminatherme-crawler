@@ -63,7 +63,7 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
     # TODO: Error handling
 
 occupancy = getOccupancy(source)
-logFile = open("./cron_task.log", "a")
+logFile = open("/cron_task.log", "a")
 # move this to the function, where we wrote the value into the database
 logFile.write(f"Date: {datetime.now()}\t Occupancy: {occupancy}\n")
 logFile.close()
