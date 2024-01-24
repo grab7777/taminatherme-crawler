@@ -2,34 +2,22 @@ import re
 import os
 import psycopg2
 
-# from requests_html import HTMLSession
-# import urllib.request
-# import mechanize
 from dotenv import load_dotenv
 from datetime import datetime
 from pyppeteer import launch
 import asyncio
-# from selenium import webdriver
 
 load_dotenv()
-# TODO: installation of python-dotenv, psycopg2, selenium
 
 async def loadSource():
     browser = await launch(headless=True,args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-setuid-sandbox'])
     page = await browser.newPage()
     await page.goto("https://www.taminatherme.ch")
     html_content = await page.content()
-    
-    # session = HTMLSession()
-    # response = session.get('https://www.taminatherme.ch')
-    # response.html.render()
-    # print(html_content)
     await page.close()
     await browser.close()
-    # page = urllib.request.urlopen('https://www.taminatherme.ch')
     return html_content
-    # chrome = webdriver.Chrome()
-    # chrome.get("https://www.taminatherme.ch")
+
 
 source = asyncio.run(loadSource())
 def getOccupancy(sourceString):
@@ -43,7 +31,9 @@ def getOccupancy(sourceString):
 
 def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_USER = os.getenv("DB_USER")
-    DB_PASSWORD = os.getenv("DB_PASSWORD")
+    pwFile  = open("/run/secrets/db_password", "r")
+    DB_PASSWORD = pwFile.readline()
+    pwFile.close()
     DB_HOST = os.getenv("DB_HOST")
     DB_PORT = os.getenv("DB_PORT")
     DB_DATABASE_NAME = os.getenv("DB_DATABASE_NAME")
@@ -60,11 +50,10 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
                 """)
     cursor.execute(f"INSERT INTO occupancy(timestamp, occupancy) VALUES({timestamp},{occupancy})");
     connection.commit()
+    logFile = open("/cron_task.log", "a")
+    logFile.write(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
+    logFile.close()
     # TODO: Error handling
 
 occupancy = getOccupancy(source)
-logFile = open("/cron_task.log", "a")
-# move this to the function, where we wrote the value into the database
-logFile.write(f"Date: {datetime.now()}\t Occupancy: {occupancy}\n")
-logFile.close()
 writeNewValueIntoDataBase(f"'{datetime.now()}'", occupancy)

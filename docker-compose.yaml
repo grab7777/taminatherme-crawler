@@ -1,5 +1,11 @@
 version: "3"
 services:
+  fetcher:
+    image: "test:test"
+    environment:
+      - DB_PASSWORD=/run/secrets/db_password
+    secrets:
+      - db_password
   database:
     image: "postgres"
     deploy:
