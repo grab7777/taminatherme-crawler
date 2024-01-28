@@ -32,7 +32,7 @@ def getOccupancy(sourceString):
 def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_USER = os.getenv("DB_USER")
     pwFile  = open("/run/secrets/db_password", "r")
-    DB_PASSWORD = pwFile.readline()
+    DB_PASSWORD = pwFile.readline().replace("\n", "")
     pwFile.close()
     DB_HOST = os.getenv("DB_HOST")
     DB_PORT = os.getenv("DB_PORT")
