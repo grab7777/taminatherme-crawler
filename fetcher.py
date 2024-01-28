@@ -37,23 +37,29 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_HOST = os.getenv("DB_HOST")
     DB_PORT = os.getenv("DB_PORT")
     DB_DATABASE_NAME = os.getenv("DB_DATABASE_NAME")
-    connection = psycopg2.connect(database = DB_DATABASE_NAME, 
-                        user = DB_USER, 
-                        host= DB_HOST,
-                        password = DB_PASSWORD,
-                        port = DB_PORT)
-    cursor = connection.cursor()
-    cursor.execute("""CREATE TABLE IF NOT EXISTS occupancy(
-                timestamp timestamp PRIMARY KEY,
-                occupancy integer NOT NULL,
-                CONSTRAINT occ_valid CHECK (occupancy >= 0 AND occupancy <= 100));
-                """)
-    cursor.execute(f"INSERT INTO occupancy(timestamp, occupancy) VALUES({timestamp},{occupancy})");
-    connection.commit()
+    try:
+        connection = psycopg2.connect(database = DB_DATABASE_NAME, 
+                            user = DB_USER, 
+                            host= DB_HOST,
+                            password = DB_PASSWORD,
+                            port = DB_PORT)
+        cursor = connection.cursor()
+        cursor.execute("""CREATE TABLE IF NOT EXISTS occupancy(
+                    timestamp timestamp PRIMARY KEY,
+                    occupancy integer NOT NULL,
+                    CONSTRAINT occ_valid CHECK (occupancy >= 0 AND occupancy <= 100));
+                    """)
+        cursor.execute(f"INSERT INTO occupancy(timestamp, occupancy) VALUES({timestamp},{occupancy})");
+        connection.commit()
+    except:
+        logFile = open("/cron_task.log", "a")
+        logFile.write(f"Date: {timestamp}\t Error: could not write into DB, occupancy: {occupancy}\n")
+        logFile.close()
+        connection.rollback()
+        connection.close()
     logFile = open("/cron_task.log", "a")
     logFile.write(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
     logFile.close()
-    # TODO: Error handling
 
 occupancy = getOccupancy(source)
 writeNewValueIntoDataBase(f"'{datetime.now()}'", occupancy)

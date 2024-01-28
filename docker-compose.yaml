@@ -1,9 +1,12 @@
 version: "3"
 services:
   fetcher:
-    image: "test:test"
+    image: "taminatherme-crawler:latest"
     environment:
       - DB_PASSWORD=/run/secrets/db_password
+    networks:
+      database:
+        ipv4_address: 192.168.92.5
     secrets:
       - db_password
   database:
@@ -12,13 +15,21 @@ services:
       mode: global
     environment:
       - POSTGRES_PASSWORD=/run/secrets/db_password
+    networks:
+      database:
+        ipv4_address: 192.168.92.6
     ports:
       - "5432:5432"
     volumes:
       - "C:/docker-db-volume:/var/lib/postgresql/data"
     secrets:
       - db_password
-
+networks:
+  database:
+    ipam:
+      driver: default
+      config:
+        - subnet: "192.168.92.0/24"
 secrets:
   db_password:
     file: db_password.txt
