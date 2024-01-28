@@ -1,6 +1,13 @@
 # Taminatherme Crawler
 
+Author: grab777
+Updated: 28.01.2024
+
 ## Setup
+
+### Prerequisites
+
+- you need a running PostgreSQL Database to send the crawled data to.
 
 ### Create the docker container
 
@@ -16,9 +23,10 @@
 
 1. if not: `docker swarm init`
 
----
+## Changelog
 
-1. write the secret for the DB into a docker secret: `echo -n "secret here" | docker secret create secure-key - `
-1. you can also put the secret into a file and run `docker secret create secure-key - < db_password.txt`
+The most important changes are logged here:
 
-TODO: did not use the key file...
+| Date       | Changes       |
+| ---------- | ------------- |
+| 28.01.2024 | First version |

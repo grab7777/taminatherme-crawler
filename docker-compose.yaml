@@ -1,7 +1,7 @@
 version: "3"
 services:
   fetcher:
-    image: "taminatherme-crawler:latest"
+    image: "grab777/taminatherme-crawler:latest"
     environment:
       - DB_PASSWORD=/run/secrets/db_password
     secrets:
