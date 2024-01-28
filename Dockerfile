@@ -48,8 +48,9 @@ RUN pip3 install -r ./requirements.txt
 
 # add cronjob
 COPY ./cron /etc/cron.d/cron
+COPY ./.env .
 RUN chmod 0644 /etc/cron.d/cron
 RUN crontab /etc/cron.d/cron
 RUN chmod +x /fetcher.py
 RUN touch /cron_task.log
-CMD ["cron" , "-f"]
+CMD cron -f && tail -f cron_task.log
