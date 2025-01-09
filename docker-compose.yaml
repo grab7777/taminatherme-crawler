@@ -1,11 +1,22 @@
-version: "3"
 services:
   fetcher:
-    image: "grab777/taminatherme-crawler:latest"
+    image: "taminatherme-crawler:latest"
     environment:
       - DB_PASSWORD=/run/secrets/db_password
     secrets:
       - db_password
+  postgres:
+    image: "postgres:latest"
+    ports:
+      - "5432:5432"
+    network_mode: "host"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=/run/secrets/db_password
+    secrets:
+      - db_password
+    volumes:
+      - ./temp/db-data:/var/lib/postgresql/data
 secrets:
   db_password:
     file: db_password.txt
