@@ -30,5 +30,3 @@ The most important changes are logged here:
 | Date       | Changes       |
 | ---------- | ------------- |
 | 28.01.2024 | First version |
-
-Test
