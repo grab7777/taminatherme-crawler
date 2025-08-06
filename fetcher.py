@@ -2,27 +2,44 @@ import re
 import os
 import psycopg2
 
+from playwright.sync_api import sync_playwright
+
 from dotenv import load_dotenv
 from datetime import datetime
-from pyppeteer import launch
 import asyncio
+import time
 
 load_dotenv()
 
-async def loadSource():
-    browser = await launch(headless=True,args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-setuid-sandbox'])
-    page = await browser.newPage()
-    await page.goto("https://www.taminatherme.ch")
-    html_content = await page.content()
-    await page.close()
-    await browser.close()
-    return html_content
+debug = True
+
+def loadSource():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=False)
+        # browser = await launch(headless=True,args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-setuid-sandbox'])
+        page = browser.new_page()
+        url = os.getenv("URL_TO_CRAWL") or "https://www.taminatherme.ch"
+        page.goto(url)
+        # TODO: wait for occupancy to load
+        time.sleep(2)
+        title = page.title()
+        html_content = page.content()
+        browser.close()
+        if (debug):
+            print("loaded website:", title, url)
+            with open("content.html", "w", encoding="utf-8") as writer:
+                writer.write(html_content)
+                writer.close()
+        return html_content
 
 
-source = asyncio.run(loadSource())
 def getOccupancy(sourceString):
-    result = re.search(r"<span class=\"block font-bold\">([0-9]+)%</span>", sourceString)
-    if result.group(1) and int(result.group(1)) >= 0 and int(result.group(1)) <= 100:
+    customRegex = os.getenv("CUSTOM_REGEX") or r"<span class=\"block font-bold\">([0-9]+)%</span>"
+    result = re.search(customRegex, sourceString)
+    if (debug):
+        print("regex used:", customRegex)
+        print(f"Regex result\n{result}")
+    if result and result.group(1) and int(result.group(1)) >= 0 and int(result.group(1)) <= 100:
         print("Occupancy: " + result.group(1))
         return int(result.group(1))
     else:
@@ -31,7 +48,8 @@ def getOccupancy(sourceString):
 
 def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_USER = os.getenv("DB_USER")
-    pwFile  = open("/run/secrets/db_password", "r")
+    pwFileLocation = os.getenv("PW_FILE_LOCATION") or "/run/secrets/db_password"
+    pwFile  = open(pwFileLocation, "r")
     DB_PASSWORD = pwFile.readline().replace("\n", "")
     pwFile.close()
     DB_HOST = os.getenv("DB_HOST")
@@ -61,5 +79,6 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
     logFile.write(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
     logFile.close()
 
-occupancy = getOccupancy(source)
+source_code = loadSource()
+occupancy = getOccupancy(source_code)
 writeNewValueIntoDataBase(f"'{datetime.now()}'", occupancy)
