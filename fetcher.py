@@ -1,6 +1,8 @@
 import re
 import os
 import psycopg2
+import logging
+import sys
 
 from playwright.sync_api import sync_playwright
 
@@ -9,15 +11,21 @@ from datetime import datetime
 import time
 
 load_dotenv()
+print(os.environ)
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.DEBUG,
+    format="[%(asctime)s]\t{%(filename)s:%(lineno)d}\t%(levelname)s - %(message)s",
+)
+
 
 debug = True if os.getenv("DEBUG") else False
-logFilePath = os.getenv("LOG_FILE_PATH") or "/fetcher.log"
+logging.info("Startup ...\n")
 
 
 def loadSource():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # browser = await launch(headless=True,args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-setuid-sandbox'])
         page = browser.new_page()
         url = os.getenv("URL_TO_CRAWL") or "https://www.taminatherme.ch"
         page.goto(url)
@@ -27,7 +35,7 @@ def loadSource():
         html_content = page.content()
         browser.close()
         if debug:
-            print("loaded website:", title, url)
+            logging.debug(f"loaded website: {title}, url: {url}")
             if not os.path.exists("./temp"):
                 os.mkdir("./temp")
             with open("./temp/content.html", "w", encoding="utf-8") as writer:
@@ -42,18 +50,18 @@ def getOccupancy(sourceString):
     )
     result = re.search(customRegex, sourceString)
     if debug:
-        print("regex used:", customRegex)
-        print(f"Regex result\n{result}")
+        logging.debug(f"regex used: {customRegex}")
+        logging.debug(f"regex result: {result}")
     if (
         result
         and result.group(1)
         and int(result.group(1)) >= 0
         and int(result.group(1)) <= 100
     ):
-        print("Occupancy: " + result.group(1))
+        logging.debug(f"occupancy: {result.group(1)}")
         return int(result.group(1))
     else:
-        print("Could not find occupancy on Website")
+        logging.error("could not find occpancy on website")
         exit(0)
 
 
@@ -66,6 +74,9 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_HOST = os.getenv("DB_HOST")
     DB_PORT = os.getenv("DB_PORT")
     DB_DATABASE_NAME = os.getenv("DB_DATABASE_NAME")
+    logging.debug(
+        f"db: {DB_DATABASE_NAME}, user: {DB_USER}, host: {DB_HOST}, port: {DB_PORT}, pw_len: {len(DB_PASSWORD)}"
+    )
     try:
         connection = psycopg2.connect(
             database=DB_DATABASE_NAME,
@@ -87,16 +98,13 @@ def writeNewValueIntoDataBase(timestamp, occupancy):
         )
         connection.commit()
     except:
-        logFile = open(logFilePath, "a")
-        logFile.write(
+        logging.error(
             f"Date: {timestamp}\t Error: could not write into DB, occupancy: {occupancy}\n"
         )
-        logFile.close()
         connection.rollback()
         connection.close()
-    logFile = open(logFilePath, "a")
-    logFile.write(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
-    logFile.close()
+
+    logging.info(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
 
 
 source_code = loadSource()
