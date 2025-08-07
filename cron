@@ -1,2 +1,3 @@
-*/20 7-22 * * * root python3 /fetcher.py
+*/20 7-22 * * * root python3 /fetcher.py
+
 # empty line

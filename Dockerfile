@@ -20,7 +20,8 @@ ENV DB_HOST=localhost
 ENV DB_DATABASE_NAME=postgres
 
 # add cronjob
-COPY ./cron /etc/cron.d/cron
+# RUN echo "* * * * * /opt/venv/bin/python /fetcher.py >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
+RUN echo "*/20 7-22 * * * /opt/venv/bin/python /fetcher.py >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
 COPY ./fetcher.py .
 
 RUN chmod 0644 /etc/cron.d/cron
