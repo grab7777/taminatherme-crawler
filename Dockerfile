@@ -20,9 +20,9 @@ ENV DB_HOST=localhost
 ENV DB_DATABASE_NAME=postgres
 
 # add cronjob
-# RUN echo "* * * * * /opt/venv/bin/python3 /fetcher.py >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
-RUN echo "* * * * * /execute.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
-# RUN echo "*/20 7-22 * * * /opt/venv/bin/python /fetcher.py >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
+# RUN echo "* * * * * /execute.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
+RUN echo "*/20 7-22 * * * /execute.sh >> /var/log/cron.log 2>&1" > /etc/cron.d/cron
+
 COPY ./fetcher.py .
 COPY .env .
 COPY ./execute.sh .
@@ -35,5 +35,3 @@ RUN touch /fetcher.log && touch /var/log/cron.log
 USER root
 SHELL ["/bin/bash", "-c"]
 CMD ["sh", "-c", "cron && tail -f /var/log/cron.log"]
-# CMD cron -f && tail -f /var/log/cron.log
-# CMD ["/opt/venv/bin/python", "fetcher.py"]
