@@ -1,7 +1,7 @@
 # Taminatherme Crawler
 
 Author: grab777
-Updated: 28.01.2024
+Updated: 07.08.2025
 
 ## Setup
 
@@ -30,3 +30,4 @@ The most important changes are logged here:
 | Date       | Changes       |
 | ---------- | ------------- |
 | 28.01.2024 | First version |
+| 07.08.2025 | Change to playwright |

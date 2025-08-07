@@ -1,11 +1,28 @@
-version: "3"
 services:
   fetcher:
-    image: "grab777/taminatherme-crawler:latest"
+    build: ./
+    env_file:
+      - ./.env
     environment:
-      - DB_PASSWORD=/run/secrets/db_password
+      - DB_HOST=192.168.1.92
     secrets:
       - db_password
+    tty:
+      true
+      #  postgres:
+      #    image: "postgres:latest"
+      #    ports:
+      #      - "${DB_PORT}:5432"
+      #    environment:
+      #      - POSTGRES_USER=postgres
+      #      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      #    secrets:
+      #      - db_password
+      #    volumes:
+      #      - ./temp/db-data:/var/lib/postgresql/data
+      #      - ./pgdata/custom-configs/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      #      - ./pgdata/custom-configs/postgresql.conf:/etc/postgresql/postgresql.conf
+      #    command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
 secrets:
   db_password:
     file: db_password.txt

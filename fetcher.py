@@ -1,65 +1,112 @@
 import re
 import os
 import psycopg2
+import logging
+import sys
+
+from playwright.sync_api import sync_playwright
 
 from dotenv import load_dotenv
 from datetime import datetime
-from pyppeteer import launch
-import asyncio
+import time
 
 load_dotenv()
-
-async def loadSource():
-    browser = await launch(headless=True,args=['--no-sandbox', '--disable-dev-shm-usage', '--disable-gpu', '--disable-software-rasterizer', '--disable-setuid-sandbox'])
-    page = await browser.newPage()
-    await page.goto("https://www.taminatherme.ch")
-    html_content = await page.content()
-    await page.close()
-    await browser.close()
-    return html_content
+print(os.environ)
+logging.basicConfig(
+    stream=sys.stdout,
+    level=logging.DEBUG,
+    format="[%(asctime)s]\t{%(filename)s:%(lineno)d}\t%(levelname)s - %(message)s",
+)
 
 
-source = asyncio.run(loadSource())
+debug = True if os.getenv("DEBUG") else False
+logging.info("Startup ...\n")
+
+
+def loadSource():
+    with sync_playwright() as p:
+        browser = p.chromium.launch(headless=True)
+        page = browser.new_page()
+        url = os.getenv("URL_TO_CRAWL") or "https://www.taminatherme.ch"
+        page.goto(url)
+        # TODO: wait for occupancy to load
+        time.sleep(2)
+        title = page.title()
+        html_content = page.content()
+        browser.close()
+        if debug:
+            logging.debug(f"loaded website: {title}, url: {url}")
+            if not os.path.exists("./temp"):
+                os.mkdir("./temp")
+            with open("./temp/content.html", "w", encoding="utf-8") as writer:
+                writer.write(html_content)
+                writer.close()
+        return html_content
+
+
 def getOccupancy(sourceString):
-    result = re.search(r"<span class=\"block font-bold\">([0-9]+)%</span>", sourceString)
-    if result.group(1) and int(result.group(1)) >= 0 and int(result.group(1)) <= 100:
-        print("Occupancy: " + result.group(1))
+    customRegex = (
+        os.getenv("CUSTOM_REGEX") or r"<span class=\"block font-bold\">([0-9]+)%</span>"
+    )
+    result = re.search(customRegex, sourceString)
+    if debug:
+        logging.debug(f"regex used: {customRegex}")
+        logging.debug(f"regex result: {result}")
+    if (
+        result
+        and result.group(1)
+        and int(result.group(1)) >= 0
+        and int(result.group(1)) <= 100
+    ):
+        logging.debug(f"occupancy: {result.group(1)}")
         return int(result.group(1))
     else:
-        print("Could not find occupancy on Website")
+        logging.error("could not find occpancy on website")
         exit(0)
+
 
 def writeNewValueIntoDataBase(timestamp, occupancy):
     DB_USER = os.getenv("DB_USER")
-    pwFile  = open("/run/secrets/db_password", "r")
+    pwFilePath = os.getenv("PW_FILE_PATH") or "/run/secrets/db_password"
+    pwFile = open(pwFilePath, "r")
     DB_PASSWORD = pwFile.readline().replace("\n", "")
     pwFile.close()
     DB_HOST = os.getenv("DB_HOST")
     DB_PORT = os.getenv("DB_PORT")
     DB_DATABASE_NAME = os.getenv("DB_DATABASE_NAME")
+    logging.debug(
+        f"db: {DB_DATABASE_NAME}, user: {DB_USER}, host: {DB_HOST}, port: {DB_PORT}, pw_len: {len(DB_PASSWORD)}"
+    )
     try:
-        connection = psycopg2.connect(database = DB_DATABASE_NAME, 
-                            user = DB_USER, 
-                            host= DB_HOST,
-                            password = DB_PASSWORD,
-                            port = DB_PORT)
+        connection = psycopg2.connect(
+            database=DB_DATABASE_NAME,
+            user=DB_USER,
+            host=DB_HOST,
+            password=DB_PASSWORD,
+            port=DB_PORT,
+        )
         cursor = connection.cursor()
-        cursor.execute("""CREATE TABLE IF NOT EXISTS occupancy(
+        cursor.execute(
+            """CREATE TABLE IF NOT EXISTS occupancy(
                     timestamp timestamp PRIMARY KEY,
                     occupancy integer NOT NULL,
                     CONSTRAINT occ_valid CHECK (occupancy >= 0 AND occupancy <= 100));
-                    """)
-        cursor.execute(f"INSERT INTO occupancy(timestamp, occupancy) VALUES({timestamp},{occupancy})");
+                    """
+        )
+        cursor.execute(
+            f"INSERT INTO occupancy(timestamp, occupancy) VALUES({timestamp},{occupancy})"
+        )
         connection.commit()
     except:
-        logFile = open("/cron_task.log", "a")
-        logFile.write(f"Date: {timestamp}\t Error: could not write into DB, occupancy: {occupancy}\n")
-        logFile.close()
+        logging.error(
+            f"Date: {timestamp}\t Error: could not write into DB, occupancy: {occupancy}\n"
+        )
         connection.rollback()
         connection.close()
-    logFile = open("/cron_task.log", "a")
-    logFile.write(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
-    logFile.close()
 
-occupancy = getOccupancy(source)
+    logging.info(f"Date: {timestamp}\t Occupancy: {occupancy}\n")
+
+
+source_code = loadSource()
+occupancy = getOccupancy(source_code)
 writeNewValueIntoDataBase(f"'{datetime.now()}'", occupancy)
