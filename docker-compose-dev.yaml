@@ -1,0 +1,24 @@
+services:
+  fetcher:
+    build: ./
+    env_file:
+      - .env
+    secrets:
+      - db_password
+  postgres:
+    image: "postgres:latest"
+    ports:
+      - "${DB_PORT}:5432"
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+    secrets:
+      - db_password
+    volumes:
+      - ./temp/db-data:/var/lib/postgresql/data
+      - ./pgdata/custom-configs/pg_hba.conf:/etc/postgresql/pg_hba.conf
+      - ./pgdata/custom-configs/postgresql.conf:/etc/postgresql/postgresql.conf
+    command: postgres -c hba_file=/etc/postgresql/pg_hba.conf
+secrets:
+  db_password:
+    file: db_password.txt
