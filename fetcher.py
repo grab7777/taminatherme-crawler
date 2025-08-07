@@ -28,6 +28,8 @@ def loadSource():
         browser.close()
         if debug:
             print("loaded website:", title, url)
+            if not os.path.exists("./temp"):
+                os.mkdir("./temp")
             with open("./temp/content.html", "w", encoding="utf-8") as writer:
                 writer.write(html_content)
                 writer.close()
